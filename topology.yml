@@ -1,0 +1,65 @@
+name: multivendor
+
+topology:
+  kinds:
+    srl:
+      image: ghcr.io/nokia/srlinux:21.11.3
+    vr-sros:
+      image: registry.srlinux.dev/pub/vr-sros:22.5.R1
+      license: ./license/sros.lic
+    ceos:
+      image: registry.srlinux.dev/pub/ceos:4.26.2.1F
+    vr-vmx:
+      image: registry.srlinux.dev/pub/vr-vmx:21.1R1.11
+    vr-vqfx:
+      image: registry.srlinux.dev/pub/vr-vqfx:20.2 
+    linux:
+      image: ghcr.io/hellt/network-multitool
+
+  nodes:
+    sros:
+        kind: vr-sros
+    vmx:
+        kind: vr-vmx
+    srl:
+        kind: srl
+        type: ixrd2
+    ceos:
+        kind: ceos
+    vqfx:
+        binds:
+          - ./config/vqfx/mynewLaunch.py:/launch.py
+        kind: vr-vqfx
+    client-1:
+        kind: linux
+        binds:
+          - ./config:/config
+        exec:
+          - bash /config/ce1/eth1.sh
+    client-2:
+        kind: linux
+        binds:
+          - ./config:/config
+        exec:
+          - bash /config/ce2/eth1.sh
+    client-3:
+        kind: linux
+        binds:
+          - ./config:/config
+        exec:
+          - bash /config/ce3/eth1.sh
+
+
+  links:
+      ##CLOS fabric
+    - endpoints: ["sros:eth1", "srl:e1-2"]
+    - endpoints: ["sros:eth2", "ceos:eth2"]
+    - endpoints: ["sros:eth3", "vqfx:eth2"]
+    - endpoints: ["vmx:eth1", "srl:e1-3"]
+    - endpoints: ["vmx:eth2", "ceos:eth3"]
+    - endpoints: ["vmx:eth3", "vqfx:eth3"]
+    
+      ##CE
+    - endpoints: ["client-1:eth1", "srl:e1-1"]
+    - endpoints: ["client-2:eth1", "ceos:eth1"]
+    - endpoints: ["client-3:eth1", "vqfx:eth1"]
