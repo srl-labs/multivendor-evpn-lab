@@ -19,36 +19,45 @@ topology:
   nodes:
     sros:
         kind: vr-sros
+        startup-config: ./config/sros.cfg
     vmx:
         kind: vr-vmx
     srl:
         kind: srl
         type: ixrd2
+        startup-config: ./config/srl.cfg
     ceos:
         kind: ceos
+        startup-config: ./config/ceos.cfg
     vqfx:
         binds:
-          - ./config/vqfx/mynewLaunch.py:/launch.py
+          - ./config/vqfxLaunch.py:/launch.py
         kind: vr-vqfx
+        startup-config: ./config/vqfx.cfg
     client-1:
         kind: linux
         binds:
-          - ./config:/config
+          - ./config/eth1.sh:/tmp/eth1.sh
         exec:
-          - bash /config/ce1/eth1.sh
+          - bash /tmp/eth1.sh
+          - ip link set eth1.10 address 00:c1:ab:0:00:01
+          - ip a add 192.168.10.11/24 dev eth1.10
     client-2:
         kind: linux
         binds:
-          - ./config:/config
+          - ./config/eth1.sh:/tmp/eth1.sh
         exec:
-          - bash /config/ce2/eth1.sh
+          - bash /tmp/eth1.sh
+          - ip link set eth1.10 address 00:c1:ab:0:00:02
+          - ip a add 192.168.10.12/24 dev eth1.10
     client-3:
         kind: linux
         binds:
-          - ./config:/config
+          - ./config/eth1.sh:/tmp/eth1.sh
         exec:
-          - bash /config/ce3/eth1.sh
-
+          - bash /tmp/eth1.sh
+          - ip link set eth1.10 address 00:c1:ab:0:00:03
+          - ip a add 192.168.10.13/24 dev eth1.10
 
   links:
       ##CLOS fabric
