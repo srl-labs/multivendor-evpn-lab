@@ -12,7 +12,7 @@ topology:
     vr-vmx:
       image: registry.srlinux.dev/pub/vr-vmx:21.1R1.11
     vr-vqfx:
-      image: registry.srlinux.dev/pub/vr-vqfx:20.2 
+      image: registry.srlinux.dev/pub/vr-vqfx:19.4R1.10
     linux:
       image: ghcr.io/hellt/network-multitool
 
@@ -30,8 +30,6 @@ topology:
         kind: ceos
         startup-config: ./config/ceos.cfg
     vqfx:
-        binds:
-          - ./config/vqfxLaunch.py:/launch.py
         kind: vr-vqfx
         startup-config: ./config/vqfx.cfg
     client-1:
