@@ -46,7 +46,22 @@ The three linux clients share the same broadcast domain (192.168.10.0/24) as def
 - client-3 = 192.168.10.13
 
 For functional testing we can start sending a ping between clients
+```
+# docker exec -it clab-multivendor-client-1 bash
+bash-5.0# ping -c 5 192.168.10.13
+PING 192.168.10.13 (192.168.10.13) 56(84) bytes of data.
+64 bytes from 192.168.10.13: icmp_seq=1 ttl=64 time=307 ms
+64 bytes from 192.168.10.13: icmp_seq=2 ttl=64 time=103 ms
+64 bytes from 192.168.10.13: icmp_seq=3 ttl=64 time=106 ms
+64 bytes from 192.168.10.13: icmp_seq=4 ttl=64 time=103 ms
+64 bytes from 192.168.10.13: icmp_seq=5 ttl=64 time=104 ms
 
+--- 192.168.10.13 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4003ms
+rtt min/avg/max/mdev = 102.920/144.541/306.975/81.223 ms
+bash-5.0#
+
+```
 
 ## Verification
 
