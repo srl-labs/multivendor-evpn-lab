@@ -40,6 +40,13 @@ docker exec -it clab-multivendor-client-1 bash
 All nodes come preconfigured thanks to startup-config setting in the topology file multivendor-evpn.clab.yml. The only node that needs extra configuration after deployment is the Juniper VMX spine. You can find the configuration [here](https://github.com/srl-labs/multivendor-evpn-lab/blob/master/config/vmx.cfg). Connect to the VMX spine, enter configuration mode by typing `configure`. Copy paste the configuration in the terminal and `commit` the changes.
 
 ## Sending traffic
+The three linux clients share the same broadcast domain (192.168.10.0/24) as defined by a L2 EVPN service distributed over the leaves. Each client is already assigned with an IP and MAC address as shown in the topology image above.
+- client-1 = 192.168.10.11
+- client-2 = 192.168.10.12
+- client-3 = 192.168.10.13
+
+For functional testing we can start sending a ping between clients
+
 
 ## Verification
 
