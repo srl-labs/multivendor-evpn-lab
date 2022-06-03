@@ -20,18 +20,23 @@ topology:
     sros:
         kind: vr-sros
         startup-config: ./config/sros.cfg
+        group: spine
     vmx:
         kind: vr-vmx
+        group: spine
     srl:
         kind: srl
         type: ixrd2
         startup-config: ./config/srl.cfg
+        group: leaf
     ceos:
         kind: ceos
         startup-config: ./config/ceos.cfg
+        group: leaf
     vqfx:
         kind: vr-vqfx
         startup-config: ./config/vqfx.cfg
+        group: leaf
     client-1:
         kind: linux
         binds:
@@ -40,6 +45,7 @@ topology:
           - bash /tmp/eth1.sh
           - ip link set eth1.10 address 00:c1:ab:0:00:01
           - ip a add 192.168.10.11/24 dev eth1.10
+        group: server   
     client-2:
         kind: linux
         binds:
@@ -48,6 +54,7 @@ topology:
           - bash /tmp/eth1.sh
           - ip link set eth1.10 address 00:c1:ab:0:00:02
           - ip a add 192.168.10.12/24 dev eth1.10
+        group: server
     client-3:
         kind: linux
         binds:
@@ -56,6 +63,7 @@ topology:
           - bash /tmp/eth1.sh
           - ip link set eth1.10 address 00:c1:ab:0:00:03
           - ip a add 192.168.10.13/24 dev eth1.10
+        group: server
 
   links:
       ##CLOS fabric
