@@ -46,29 +46,96 @@ The three linux clients share the same broadcast domain (192.168.10.0/24) as def
 - client-3 = 192.168.10.13
 
 For functional testing we can start sending a ping between clients
-```
-> docker exec -it clab-multivendor-client-1 bash
-bash-5.0# ping -c 3 192.168.10.12
+<pre>
+<b># docker exec -it clab-multivendor-client-1 bash</b>
+bash-5.0#
+bash-5.0# <b>ping -c 3 192.168.10.12</b>
 PING 192.168.10.12 (192.168.10.12) 56(84) bytes of data.
-64 bytes from 192.168.10.12: icmp_seq=1 ttl=64 time=4.80 ms
-64 bytes from 192.168.10.12: icmp_seq=2 ttl=64 time=5.21 ms
-64 bytes from 192.168.10.12: icmp_seq=3 ttl=64 time=4.76 ms
+64 bytes from <b>192.168.10.12</b>: icmp_seq=1 ttl=64 time=4.80 ms
+64 bytes from <b>192.168.10.12</b>: icmp_seq=2 ttl=64 time=5.21 ms
+64 bytes from <b>192.168.10.12</b>: icmp_seq=3 ttl=64 time=4.76 ms
 
 --- 192.168.10.12 ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 2003ms
 rtt min/avg/max/mdev = 4.758/4.920/5.208/0.203 ms
-bash-5.0# ping -c 3 192.168.10.13
+bash-5.0#
+bash-5.0# <b>ping -c 3 192.168.10.13</b>
 PING 192.168.10.13 (192.168.10.13) 56(84) bytes of data.
-64 bytes from 192.168.10.13: icmp_seq=1 ttl=64 time=104 ms
-64 bytes from 192.168.10.13: icmp_seq=2 ttl=64 time=103 ms
-64 bytes from 192.168.10.13: icmp_seq=3 ttl=64 time=103 ms
+64 bytes from <b>192.168.10.13</b>: icmp_seq=1 ttl=64 time=104 ms
+64 bytes from <b>192.168.10.13</b>: icmp_seq=2 ttl=64 time=103 ms
+64 bytes from <b>192.168.10.13</b>: icmp_seq=3 ttl=64 time=103 ms
 
 --- 192.168.10.13 ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 2001ms
 rtt min/avg/max/mdev = 102.874/103.270/103.864/0.427 ms
 bash-5.0#
 
-```
+</pre>
 
 ## Verification
 
+### Underlay 
+We use OSPF to exchange VTEP loopback addresses. This can be verified by checking that the OSPF neighborships are in Full state.
+#### Spine 1 (SROS)
+<pre>
+A:admin@sros# show router ospf neighbor
+
+===============================================================================
+Rtr Base OSPFv2 Instance 0 Neighbors
+===============================================================================
+Interface-Name                   Rtr Id          State      Pri  RetxQ   TTL
+   Area-Id
+-------------------------------------------------------------------------------
+to_srl                           192.1.1.1       <b>Full</b>       1    0       39
+   0.0.0.0
+to_ceos                          192.1.1.2       <b>Full</b>       0    0       36
+   0.0.0.0
+to_vqfx                          192.1.1.3       <b>Full</b>       128  0       38
+   0.0.0.0
+-------------------------------------------------------------------------------
+No. of Neighbors: 3
+===============================================================================
+
+</pre>
+#### Spine 2 (VMX)
+<pre>
+admin@vmx# run show ospf neighbor
+Address          Interface              State           ID               Pri  Dead
+101.1.1.2        ge-0/0/0.0             <b>Full</b>            192.1.1.1          1    39
+101.1.2.2        ge-0/0/1.0             <b>Full</b>            192.1.1.2          0    38
+101.1.3.2        ge-0/0/2.0             <b>Full</b>            192.1.1.3        128    37
+</pre>
+
+Once OSPF is in place and all loopbacks are known in the fabric. We can start checking if the iBGP sessions between the loopbacks are Established. We use iBGP to distribute EVPN routes.
+#### Spine 1 (SROS)
+<pre>
+A:admin@sros# show router bgp summary
+===============================================================================
+Neighbor
+Description
+                   AS PktRcvd InQ  Up/Down   State|Rcv/Act/Sent (Addr Family)
+                      PktSent OutQ
+-------------------------------------------------------------------------------
+192.1.1.1
+                65000    2039    0 16h38m06s 1/0/4 (Evpn)
+                         2078    0
+192.1.1.2
+                65000    2370    0 16h38m06s 1/0/4 (Evpn)
+                         2078    0
+192.1.1.3
+                65000    2221    0 16h36m06s 2/0/4 (Evpn)
+                         2074    0
+-------------------------------------------------------------------------------
+</pre>
+
+#### Spine 2 (VMX)
+<pre>
+admin@vmx> show bgp summary
+Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Accepted/Damped...
+192.1.1.1             65000         28         33       0       0       13:15 <b>Establ</b>
+  bgp.evpn.0: 1/1/1/0
+192.1.1.2             65000         36         34       0       0       13:19 <b>Establ</b>
+  bgp.evpn.0: 1/1/1/0
+192.1.1.3             65000         33         32       0       0       13:19 <b>Establ</b>
+  bgp.evpn.0: 2/2/2/0
+</pre>
