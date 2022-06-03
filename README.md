@@ -4,7 +4,7 @@ This repository lets you deploy a multivendor lab by using [containerlab](https:
 ![](./img/topo.PNG)
 
 ## Lab lifecycle
-With containerlab we can easily deploy a multivendor topology by defining all interlinks in one YAML [file](https://github.com/srl-labs/multivendor-evpn-lab/blob/master/multivendor-evpn.clab.yml). This file can be used to deploy our topology by passing it as an argument with the `deploy` command.
+With containerlab we can easily deploy a multivendor topology by defining all interlinks and node specific information in one YAML [file](https://github.com/srl-labs/multivendor-evpn-lab/blob/master/multivendor-evpn.clab.yml). This file can be used to deploy our topology by passing it as an argument with the `deploy` command.
 ```
 clab deploy -t multivendor-evpn.clab.yml
 ```
@@ -13,11 +13,11 @@ Same goes for destroying the lab
 clab destroy -t multivendor-evpn.clab.yml
 ```
 ## Accessing the network elements
-After deploying the lab you will see a nice summary of the deployed nodes in table format like below. To access a network element with SSH simply use the hostname as described in the table.
+After deploying the lab, you will see a summary of the deployed nodes in table format like below. To access a network element with SSH simply use the hostname as described in the table.
 ```
 ssh admin@clab-multivendor-srl
 ```
-The linux CE clients can be accessed as regular containers, you can connect to them just like to any other container
+The Linux CE clients can be accessed as regular containers, you can connect to them just like to any other container
 ```
 docker exec -it clab-multivendor-client-1 bash
 ```
@@ -40,7 +40,7 @@ docker exec -it clab-multivendor-client-1 bash
 All nodes come preconfigured thanks to startup-config setting in the topology file multivendor-evpn.clab.yml. The only node that needs extra configuration after deployment is the Juniper VMX spine. You can find the configuration [here](https://github.com/srl-labs/multivendor-evpn-lab/blob/master/config/vmx.cfg). Connect to the VMX spine, enter configuration mode by typing `configure`. Copy paste the configuration in the terminal and `commit` the changes.
 
 ## Sending traffic
-The three linux clients share the same broadcast domain (192.168.10.0/24) as defined by a L2 EVPN service distributed over the leaves. Each client is already assigned with an IP and MAC address as shown in the topology image above.
+The three Linux clients share the same broadcast domain (192.168.10.0/24) as defined by a L2 EVPN service distributed over the leaves. Each client is already assigned with an IP and MAC address as shown in the topology image above.
 - client-1 = 192.168.10.11
 - client-2 = 192.168.10.12
 - client-3 = 192.168.10.13
@@ -72,11 +72,10 @@ bash-5.0#
 
 </pre>
 
-## Verification
+## Underlay verification
 
-### Underlay 
-We use OSPF to exchange VTEP loopback addresses. This can be verified by checking that the OSPF neighborships are in Full state.
-#### Spine 1 (SROS)
+We use OSPF to exchange VTEP loopback addresses. This can be verified by checking that the OSPF neighborships are in Full state on the spine nodes.
+#### Spine-1 (Nokia SROS)
 <pre>
 A:admin@sros# show router ospf neighbor
 
@@ -97,7 +96,7 @@ No. of Neighbors: 3
 ===============================================================================
 
 </pre>
-#### Spine 2 (VMX)
+#### Spine-2 (Juniper VMX)
 <pre>
 admin@vmx# run show ospf neighbor
 Address          Interface              State           ID               Pri  Dead
@@ -107,7 +106,7 @@ Address          Interface              State           ID               Pri  De
 </pre>
 
 Once OSPF is in place and all loopbacks are known in the fabric. We can start checking if the iBGP sessions between the loopbacks are Established. We use iBGP to distribute EVPN routes.
-#### Spine 1 (SROS)
+#### Spine-1 (Nokia SROS)
 <pre>
 A:admin@sros# show router bgp summary
 ===============================================================================
@@ -128,7 +127,7 @@ Description
 -------------------------------------------------------------------------------
 </pre>
 
-#### Spine 2 (VMX)
+#### Spine-2 (Juniper VMX)
 <pre>
 admin@vmx> show bgp summary
 Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn State|#Active/Received/Accepted/Damped...
@@ -138,4 +137,76 @@ Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn St
   bgp.evpn.0: 1/1/1/0
 192.1.1.3             65000         33         32       0       0       13:19 <b>Establ</b>
   bgp.evpn.0: 2/2/2/0
+</pre>
+
+## Overlay verification 
+Once the iBGP sessions are Established we can verify if EVPN IMET routes and MAC/IP routes are recieved.
+#### Leaf-1 (Nokia SR Linux)
+```
+A:srl# show network-instance default protocols bgp routes evpn route-type 3 summary
+<snipp>
+Type 3 Inclusive Multicast Ethernet Tag Routes
++--------+-----------------------------------+------------+---------------------+-----------------------------------+-----------------------------------+
+| Status |        Route-distinguisher        |   Tag-ID   |    Originator-IP    |             neighbor              |             Next-Hop              |
++========+===================================+============+=====================+===================================+===================================+
+| -      | 10:1                              | 1010       | 192.1.1.1           | 192.1.2.1                         | 192.1.1.1                         |
+| u*>    | 10:2                              | 1010       | 192.1.1.2           | 192.1.2.1                         | 192.1.1.2                         |
+| *      | 10:2                              | 1010       | 192.1.1.2           | 192.1.2.2                         | 192.1.1.2                         |
+| u*>    | 10:3                              | 1010       | 192.1.1.3           | 192.1.2.1                         | 192.1.1.3                         |
+| *      | 10:3                              | 1010       | 192.1.1.3           | 192.1.2.2                         | 192.1.1.3                         |
++--------+-----------------------------------+------------+---------------------+-----------------------------------+-----------------------------------+
+```
+<pre>
+A:srl# show network-instance default protocols bgp routes evpn route-type 2 summary
+<snipp>
+Type 2 MAC-IP Advertisement Routes
++-------+-------------+----------+-------------------+-------------+-------------+-------------+-------------+------------------------------+-------------+
+| Statu | Route-disti |  Tag-ID  |  MAC-address      | IP-address  |  neighbor   |  Next-Hop   |     VNI     |            ESI               |     MAC     |
+|   s   |  nguisher   |          |                   |             |             |             |             |                              |  Mobility   |
++=======+=============+==========+===================+=============+=============+=============+=============+==============================+=============+
+| -     | 10:1        | 1010     | <b>00:C1:AB:00:00:01</b> | 0.0.0.0     | 192.1.2.1   | 192.1.1.1   | 1010        | 00:00:00:00:00:00:00:00:00:00| -           |
+| u*>   | 10:2        | 1010     | <b>00:C1:AB:00:00:02</b> | 0.0.0.0     | 192.1.2.1   | 192.1.1.2   | 1010        | 00:00:00:00:00:00:00:00:00:00| -           |
+| *     | 10:2        | 1010     | <b>00:C1:AB:00:00:02</b> | 0.0.0.0     | 192.1.2.2   | 192.1.1.2   | 1010        | 00:00:00:00:00:00:00:00:00:00| -           |
+| u*>   | 10:3        | 1010     | <b>00:C1:AB:00:00:03</b> | 0.0.0.0     | 192.1.2.1   | 192.1.1.3   | 1010        | 00:00:00:00:00:00:00:00:00:00| -           |
+| *     | 10:3        | 1010     | <b>00:C1:AB:00:00:03</b> | 0.0.0.0     | 192.1.2.2   | 192.1.1.3   | 1010        | 00:00:00:00:00:00:00:00:00:00| -           |
++-------+-------------+----------+-------------------+-------------+-------------+-------------+-------------+------------------------------+-------------+
+</pre>
+
+## Bridge table verification
+#### Leaf-1 (Nokia SR Linux)
+<pre>
+A:srl# show network-instance mac-vrf-10 bridge-table mac-table all
+Mac-table of network instance mac-vrf-10
++--------------------+-----------------------------------------+------------+-------------+---------+--------+-----------------------------------------+
+|      Address       |               Destination               | Dest Index |    Type     | Active  | Aging  |               Last Update               |
++====================+=========================================+============+=============+=========+========+=========================================+
+| <b>00:C1:AB:00:00:01</b>  | ethernet-1/1.10                         | 2          | learnt      | true    | 300    | 2022-06-03T08:08:56.000Z                |
+| <b>00:C1:AB:00:00:02</b>  | vxlan-interface:vxlan0.10               | 1423849941 | evpn        | true    | N/A    | 2022-06-03T08:08:50.000Z                |
+|                    | vtep:192.1.1.2 vni:1010                 | 656        |             |         |        |                                         |
+| <b>00:C1:AB:00:00:03</b>  | vxlan-interface:vxlan0.10               | 1423849941 | evpn        | true    | N/A    | 2022-06-02T14:55:48.000Z                |
+|                    | vtep:192.1.1.3 vni:1010                 | 658        |             |         |        |                                         |
++--------------------+-----------------------------------------+------------+-------------+---------+--------+-----------------------------------------+
+</pre>
+#### Leaf-2 (Arista cEOS)
+<pre>
+ceos>show vxlan address-table
+          Vxlan Mac Address Table
+----------------------------------------------------------------------
+VLAN  Mac Address     Type      Prt  VTEP             Moves   Last Move
+----  -----------     ----      ---  ----             -----   ---------
+  10  <b>00c1.ab00.0001</b>  EVPN      Vx1  192.1.1.1        1       0:06:32 ago
+  10  <b>00c1.ab00.0003</b>  EVPN      Vx1  192.1.1.3        1       17:19:40 ago
+Total Remote Mac Addresses for this criterion: 2
+</pre>
+#### Leaf-3 (Juniper vQFX)
+<pre>
+admin@vqfx> show ethernet-switching table
+<snipp>
+Ethernet switching table : 3 entries, 3 learned
+Routing instance : default-switch
+   Vlan                MAC                 MAC      Logical                Active
+   name                address             flags    interface              source
+   VLAN10              <b>00:c1:ab:00:00:01</b>   D        vtep.32770             192.1.1.1
+   VLAN10              <b>00:c1:ab:00:00:02</b>   D        vtep.32769             192.1.1.2
+   VLAN10              <b>00:c1:ab:00:00:03</b>   D        xe-0/0/0.0
 </pre>
