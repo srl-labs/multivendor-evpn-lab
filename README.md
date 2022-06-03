@@ -1,7 +1,7 @@
 # Multivendor EVPN lab
 This repository lets you deploy a multivendor lab by using [containerlab](https://containerlab.dev/) to build up the topology. With the files contained in this repository you are able to spin up a two-tier clos topology containing a L2 EVPN service distributed across the leaf switches (Nokia SR Linux, Arista cEOS and Juniper vQFX). OSPF is configured in the underlay to distribute the VTEP addresses and both spines (Nokia SROS and Juniper VMX) function as route reflectors to distribute EVPN routes with iBGP.
 
-![](./img/topology.PNG)
+![](./img/topo.PNG)
 
 ## Lab lifecycle
 With containerlab we can easily deploy a multivendor topology by defining all interlinks and node specific information in one YAML [file](https://github.com/srl-labs/multivendor-evpn-lab/blob/master/multivendor-evpn.clab.yml). This file can be used to deploy our topology by passing it as an argument with the `deploy` command.
