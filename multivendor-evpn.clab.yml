@@ -23,6 +23,7 @@ topology:
         group: spine
     vmx:
         kind: vr-vmx
+        startup-config: ./config/vmx.cfg
         group: spine
     srl:
         kind: srl
